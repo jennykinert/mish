@@ -6,14 +6,22 @@
 #include "mish.h"
 #include "sighant.h"
 #include "parser.h"
+#include "testProgram.h"
 /**
  * Function for changing the working directory
  * @param argv (new file to enter or .. to exit directory)
  */
 void changecwd(char *argv);
 char **splitString(char *s, char separator);
+int mish();
 
-int main(void){
+int main(int argc, char **argv){
+    if(strcmp(argv[argc-1],"test")==0){
+        return test();
+    }
+    return mish();
+}
+int mish(){
     if(signal(SIGINT,signalCommand) == SIG_ERR)
       printf("\nCan't cath SIGINT\n");
 
@@ -60,26 +68,34 @@ void changecwd(char *argv){
 
 char **splitString(char *s, char separator){
 
-    int stringLenght = strlen(s);
+    size_t stringLenght = strlen(s);
     int separatorCounter = 0;
-    char buff[1024];
+    char *buff = malloc(1024);
     int n =0;
-    printf("Debug: String length %d", stringLenght);
     for(int i=0; i<stringLenght; i++){
         separatorCounter++;
     }
+
     char **stringArray = malloc(separatorCounter*sizeof(char*));
+    int buffCounter = 0;
+
     for(int i =0; i<stringLenght; i++){
+
         if(s[i] != separator){
-            buff[i]=s[i];
+            buff[buffCounter] = s[i];
+            buffCounter++;
         }
         else{
-            char *splitString = malloc(i*sizeof(char));
-            strcpy(splitString,buff);
+            char *splitString = malloc((buffCounter*sizeof(char))+1);
+            buff[i]='\0';
+            strncpy(splitString,buff,1023);
+            splitString[buffCounter]='\0';
             stringArray[n] = splitString;
             n++;
+            buffCounter=0;
         }
     }
+    //free(buff);
     return stringArray;
 }
     
