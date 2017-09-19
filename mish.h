@@ -1,0 +1,1 @@
+char **splitString(char *s, char separator);

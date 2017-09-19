@@ -37,7 +37,7 @@
  * Arguments:	pip	the pipe
  *		end	tells which end of the pipe shold be dup'ed; it can be
  *			one of READ_END or WRITE_END
- *		destfd	the standard I/O file descriptor to be replaced
+ *		destfd	the standard I/O file descriptor to be replaced=
  * Returns:	-1 on error, else destfd
  */
 int dupPipe(int pip[2], int end, int destfd);
