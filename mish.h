@@ -16,3 +16,5 @@ void changecwd(char *argv);
  * @return (the new joined string)
  */
 char *join(int length, char **stringToJoin, const char* separator);
+
+char *getPath(char *path);
