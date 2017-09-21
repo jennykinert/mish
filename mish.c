@@ -7,11 +7,9 @@
 #include "sighant.h"
 #include "parser.h"
 #include "testProgram.h"
-/**
- * Function for changing the working directory
- * @param argv (new file to enter or .. to exit directory)
- */
-void changecwd(char *argv);
+#include "split.h"
+
+static void fail(char* str);
 char **splitString(char *s, char separator);
 int mish();
 
@@ -27,7 +25,9 @@ int mish(){
 
     FILE *fp; 
     fp=stdin; 
-    char *commandString = malloc(1024); 
+    char *commandString = malloc(1024);
+    fail(commandString);
+
     command comLine[2 + 1];
     while(fgets(commandString, 1024,fp)!=NULL){
         int numberOfCommands = parse(commandString,comLine);
@@ -40,7 +40,6 @@ int mish(){
         }
 
         else if(strcmp(myCommands.argv[0],"cd")== 0){
-            printf("Jag gick in i CD\n");
             changecwd(myCommands.argv[1]);
         }
 
@@ -49,53 +48,60 @@ int mish(){
         }        
 
     }
-
+    free(commandString);
     return 0; 
 }
 
+/**
+ * Name: change cwd
+ * Description: Changing the working directory.
+ * @param argv (new file to enter or .. to exit directory)
+ */
 void changecwd(char *argv){
     char *buff;
-    char *ptr;
+    char *currentDirectory;
+    const char *separator2 = "/";
     if((buff = (char*)malloc(1024))!=NULL){
-        ptr=getcwd(buff,1024);
-        printf("%s", ptr);
+        currentDirectory=getcwd(buff,1024);
+        printf("Print Current directory %s\n", currentDirectory);
     }
 
-    if(strcmp(argv,"..")){
-
+    strcat(currentDirectory,separator2);
+    strcat(currentDirectory,argv);
+    if(chdir(currentDirectory)==-1){
+        perror("chdir() failed \n");
     }
+
+    //currentDirectory=getcwd(buff,1024);
+    //printf("Print Current directory %s\n", currentDirectory);
+    free(buff);
+}
+/**
+ * Name: Join
+ * Description: Function for joining strings togheter.
+ * @param length (size of matrix)
+ * @param stringToJoin (matrix with strings to join)
+ * @param separator (char to separate the strings)
+ * @return (the new joined string)
+ */
+char *join(int length, char **stringToJoin, const char *separator){
+    int allocatedlength = 0;
+    for(int i =0; i<length; i++){
+        int strLength = strlen(stringToJoin[i]);
+        allocatedlength = strLength +allocatedlength +1;
+    }
+    char *returnString = calloc(allocatedlength+1, sizeof(char));
+    for(int i = 0; i<length; i++){
+        strcat(returnString,separator);
+        strcat(returnString, stringToJoin[i]);
+    }
+    return returnString;
 }
 
-char **splitString(char *s, char separator){
-
-    size_t stringLenght = strlen(s);
-    int separatorCounter = 0;
-    char *buff = malloc(1024);
-    int n =0;
-    for(int i=0; i<stringLenght; i++){
-        separatorCounter++;
+static void fail(char* str) {
+    if(str == NULL){
+        fprintf(stderr, "ERROR: %s\n", str);
+        exit(EXIT_FAILURE);
     }
-
-    char **stringArray = malloc(separatorCounter*sizeof(char*));
-    int buffCounter = 0;
-
-    for(int i =0; i<stringLenght; i++){
-
-        if(s[i] != separator){
-            buff[buffCounter] = s[i];
-            buffCounter++;
-        }
-        else{
-            char *splitString = malloc((buffCounter*sizeof(char))+1);
-            buff[i]='\0';
-            strncpy(splitString,buff,1023);
-            splitString[buffCounter]='\0';
-            stringArray[n] = splitString;
-            n++;
-            buffCounter=0;
-        }
-    }
-    //free(buff);
-    return stringArray;
 }
     
