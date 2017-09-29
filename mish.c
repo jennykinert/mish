@@ -47,10 +47,10 @@ int mish(){
                 }
                 else {
                     if(i == 0){
-                        createChildWrite(fd, parameterList);
+                        createChildWrite(fd, parameterList,myCommands);
                     }
                     else if(i == numberOfCommands-1){
-                        createChildRead(fd,parameterList);
+                        createChildRead(fd,parameterList,myCommands);
                     }
                     else{
                         createReadAndWriteChild(fd, parameterList);
@@ -96,9 +96,11 @@ void changecwd(char *argv){
     free(buff);
 }
 /**
- *
+ * Name getExecParam
+ * Description constructs the parameterList to be used when starting a new
+ * process with execvp
  * @param myCommand
- * @return
+ * @return parameterList (matrix of parameters)
  */
 char **getExecParam(command myCommand){
     char *newDirectory = getPath(myCommand);
@@ -127,18 +129,21 @@ char *getPath(command myCommand){
     fprintf(stderr,"%s\n",newDirectory);
     return newDirectory;
 }
+
 /**
  * Name createChildWrite
- * @param fd
+ * Description creates a child that can only write to the file descriptor
+ * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildWrite(int fd[], char **parameterList){
+void createChildWrite(int fd[], char **parameterList, command myCommand){
     pid_t pid = fork();
-    if(pid < 0){
-        perror("Problem with fork");
-        exit(1);
-    }
-    else if(pid == 0){
+    checkFork(pid);
+    if(pid == 0){
+        //Handle if a new inputFile is chosen
+        if(myCommand.infile != NULL){
+           redirectInFile(fd, myCommand.infile);
+        }
         dup2(fd[WRITE_END], STDOUT_FILENO);
         close(fd[READ_END]);
         close(fd[WRITE_END]);
@@ -150,16 +155,17 @@ void createChildWrite(int fd[], char **parameterList){
 }
 /**
  * Name createChildRead
- * @param fd
+ * Description Creates a child that can only read from the filedescriptor
+ * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildRead(int fd[], char **parameterList){
+void createChildRead(int fd[], char **parameterList, command myCommand){
     pid_t pid = fork();
-    if(pid < 0){
-        perror("Problem with fork");
-        exit(1);
-    }
-    else if(pid == 0){
+    checkFork(pid);
+    if(pid == 0){
+        if(myCommand.outfile != NULL){
+            redirectOutFile(fd, myCommand.outfile);
+        }
         dup2(fd[READ_END], STDIN_FILENO);
         close(fd[WRITE_END]);
         close(fd[READ_END]);
@@ -170,13 +176,17 @@ void createChildRead(int fd[], char **parameterList){
     }
 }
 
+/**
+ * Name createReadAndWriteChild
+ * Description creates a child that can pipe to both read and write of the
+ * filedescriptor
+ * @param fd
+ * @param parameterList
+ */
 void createReadAndWriteChild(int fd[], char **parameterList){
     pid_t pid = fork();
-    if(pid < 0){
-        perror("Problem with fork");
-        exit(1);
-    }
-    else if(pid == 0){
+    checkFork(pid);
+    if(pid == 0){
         dup2(fd[READ_END], STDIN_FILENO);
         dup2(fd[WRITE_END],STDOUT_FILENO);
         close(fd[WRITE_END]);
@@ -188,13 +198,16 @@ void createReadAndWriteChild(int fd[], char **parameterList){
     }
 }
 
+/**
+ * Name createChildWithoutPipe
+ * Description used when only one external command is supposed to be executed
+ * here no pipes are created.
+ * @param parameterList
+ */
 void createChildWithoutPipe( char **parameterList){
     pid_t pid= fork();
-    if(pid < 0){
-        perror("Problem with fork");
-        exit(1);
-    }
-    else if(pid == 0){
+    checkFork(pid);
+    if(pid == 0){
         if(execvp(parameterList[0],parameterList)<0){
             perror("Exec:");
             exit(1);
@@ -202,7 +215,42 @@ void createChildWithoutPipe( char **parameterList){
     }
 }
 
-
+/**
+ * Name redirectInFile
+ * Description: Function to redirect input to a file
+ * @param fd (filedescriptor)
+ * @param outfile (name of file to redirect to)
+ */
+void redirectInFile(int fd[], char *infile){
+    int file = open(infile ,O_RDONLY, S_IROTH);
+    if(file < 0){
+        perror("Open:");
+        exit(1);
+    }
+    dup2(file,STDIN_FILENO);
+    dup2(fd[READ_END],file);
+    close(file);
+}
+/**
+ * Name redirectOutFile
+ * Description: Function to redirect output to a file
+ * @param fd (filedescriptor)
+ * @param outfile (name of file to redirect to)
+ */
+void redirectOutFile(int fd[], char *outfile){
+    int file = open(outfile ,O_WRONLY, O_APPEND);
+    if(file < 0){
+        perror("Open:");
+        exit(1);
+    }
+    dup2(file,STDOUT_FILENO);
+    dup2(fd[WRITE_END],file);
+    close(file);
+}
+/**
+ * Name waitForChild
+ * Description waits for all the childs created during the execprocess
+ */
 void waitForChild(){
     int pid;
     int status;
@@ -214,32 +262,22 @@ void waitForChild(){
         printf("WIFSTOPPED: %d\n", WIFSTOPPED(status));
     }
 }
-/**
- * Name: Join
- * Description: Function for joining strings togheter.
- * @param length (size of matrix)
- * @param stringToJoin (matrix with strings to join)
- * @param separator (char to separate the strings)
- * @return (the new joined string)
- */
-char *join(int length, char **stringToJoin, const char *separator){
-    int allocatedlength = 0;
-    for(int i =0; i<length; i++){
-        int strLength = strlen(stringToJoin[i]);
-        allocatedlength = strLength +allocatedlength +1;
-    }
-    char *returnString = calloc(allocatedlength+1, sizeof(char));
-    for(int i = 0; i<length; i++){
-        strcat(returnString,separator);
-        strcat(returnString, stringToJoin[i]);
-    }
-    return returnString;
-}
 
 static void fail(char* str) {
     if(str == NULL){
         fprintf(stderr, "ERROR: %s\n", str);
         exit(EXIT_FAILURE);
+    }
+}
+/**
+ * Name checkFork
+ * Description controls if a fork command is executed correct.
+ * @param fork
+ */
+void checkFork(int fork){
+    if(fork < 0){
+        perror("Problem with fork");
+        exit(1);
     }
 }
     
