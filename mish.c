@@ -249,7 +249,8 @@ void redirectOutFile(int fd[], char *outfile){
 }
 /**
  * Name waitForChild
- * Description waits for all the childs created during the execprocess
+ * Description waits for all the childs created during the execproce
+ * ss
  */
 void waitForChild(){
     int pid;

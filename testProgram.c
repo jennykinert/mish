@@ -13,7 +13,6 @@ void testJoin();
 
 int test(void){
     testSplitCorrectNumberOfSplits();
-    testJoin();
     return 0;
 }
 
@@ -31,22 +30,6 @@ void testSplitCorrectNumberOfSplits(){
     assert(strcmp(returnString[3],"three")==0);*/
 }
 
-void testJoin(){
-    char **testMatrix = calloc(3,sizeof(char**));
-    testMatrix[0]="my";
-    testMatrix[1]="test";
-    testMatrix[2]="path";
-
-    const char* separator = "/";
-    int size = 3;
-    char *newstring;
-    newstring = join(size, testMatrix, separator);
-
-    assert(strncmp(newstring, "my/test/path", 12) == 0);
-    free(testMatrix);
-    free(newstring);
-    printf("Test: testJoin succeded\n");
-}
 
 /**void testStepBackwardscwd(){
     char *argv = "..";
