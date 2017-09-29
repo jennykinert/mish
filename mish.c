@@ -1,14 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/wait.h>
 #include "mish.h"
-#include "sighant.h"
-#include "parser.h"
-#include "testProgram.h"
-#include "split.h"
 
 static void fail(char* str);
 char **splitString(char *s, char separator);
@@ -28,97 +18,49 @@ int mish(){
     fp=stdin; 
     char *commandString = malloc(1024);
     fail(commandString);
+    command comLine[MAX_COMMAND];
 
-    command comLine[2 + 1];
+
     while(fgets(commandString, 1024,fp)!=NULL){
+        int fd[2];
+        pipe(fd);
         int numberOfCommands = parse(commandString,comLine);
         printf("%d", numberOfCommands);
 
-        //Kollar om det är echo eller cd
-        command myCommands = comLine[0];
-        if(strcmp(myCommands.argv[0],"echo")== 0){
-            printf("%s %s\n", myCommands.argv[0], myCommands.argv[1]);
-        }
+        for(int i=0; i<numberOfCommands; i++){
 
-        else if(strcmp(myCommands.argv[0],"cd")== 0){
-            changecwd(myCommands.argv[1]);
-        }
-
-        else{
-            pid_t childProcessID;
-            size_t sizeOfProgram = strlen(myCommands.argv[0]);
-            char *tmpString = "/bin/";
-            char *newDirectory = calloc((sizeOfProgram+5) ,sizeof(char*));
-            newDirectory[0] = '\0';
-            strcat(newDirectory,tmpString);
-            strcat(newDirectory,myCommands.argv[0]);
-
-            char *parameterList[myCommands.argc+1];
-            parameterList[0] = newDirectory;
-
-            for(int i =1; i<myCommands.argc; i++){
-                parameterList[i] = myCommands.argv[i];
+            //Kollar om det är echo eller cd
+            command myCommands = comLine[i];
+            if(strcmp(myCommands.argv[0],"echo")== 0){
+                printf("%s %s\n", myCommands.argv[0], myCommands.argv[1]);
             }
-            //parameterList[1] = myCommands.argv[1];
-            parameterList[myCommands.argc] = 0;
-            childProcessID = fork();
 
-            if(childProcessID < 0){
-                perror("Problem with fork");
-                exit(1);
+            else if(strcmp(myCommands.argv[0],"cd")== 0){
+                changecwd(myCommands.argv[1]);
             }
-            else if(childProcessID == 0){
-                if(execv(parameterList[0],parameterList)<0){
-                    perror("Exec:");
-                    exit(1);
+
+            else{
+                char **parameterList = getExecParam(myCommands);
+                if(numberOfCommands == 1){
+                    createChildWithoutPipe(parameterList);
+                    waitForChild();
+                }
+                else {
+                    if(i == 0){
+                        createChildWrite(fd, parameterList);
+                    }
+                    else if(i == numberOfCommands-1){
+                        createChildRead(fd,parameterList);
+                    }
+                    else{
+                        createReadAndWriteChild(fd, parameterList);
+                    }
                 }
             }
-            else{
-                int status;
-                /* Föräldraprocessen */
-                wait(&status);
-                printf("Parent signing off. Child exited with status %d \n",status);
-                printf("WEXITSTATUS: %d\n", WEXITSTATUS(status));
-                printf("WIFEXITED: %d\n", WIFEXITED(status));
-                printf("WIFSIGNALED: %d\n", WIFSIGNALED(status));
-                printf("WIFSTOPPED: %d\n", WIFSTOPPED(status));
-            }
-
-        //ParameterLista till exec
-        /**size_t sizeOfProgram = strlen(myCommands.argv[0]);
-        char *tmpString = "/bin/";
-        char *newDirectory = calloc((sizeOfProgram+5) ,sizeof(char*));
-        newDirectory[0] = '\0';
-        strcat(newDirectory,tmpString);
-        strcat(newDirectory,myCommands.argv[0]);
-
-        char *parameterList[] = { newDirectory,"sorterad.txt", 0};
-        printf("%s\n%s\n", parameterList[0], parameterList[1]);
-        childProcessID = fork();**/
-
-            //Kollar om barnets ID är något annat än 0 i så fall blev det fel
-            /**if(childProcessID < 0){
-                perror("Problem with fork");
-                exit(1);
-            }
-            else if(childProcessID == 0){
-                if(execv(parameterList[0],parameterList)<0){
-                    perror("Exec:");
-                    exit(1);
-                }
-            }
-            else{
-                int status;**/
-                /* Föräldraprocessen */
-                /**wait(&status);
-                printf("Parent signing off. Child exited with status %d \n",status);
-                printf("WEXITSTATUS: %d\n", WEXITSTATUS(status));
-                printf("WIFEXITED: %d\n", WIFEXITED(status));
-                printf("WIFSIGNALED: %d\n", WIFSIGNALED(status));
-                printf("WIFSTOPPED: %d\n", WIFSTOPPED(status));
-            }**/
         }
-
+        close(fd[READ_END]);
+        close(fd[WRITE_END]);
+        waitForChild();
     }
     free(commandString);
     return 0; 
@@ -152,6 +94,125 @@ void changecwd(char *argv){
     currentDirectory=getcwd(buff,1024);
     printf("Print Current directory %s\n", currentDirectory);
     free(buff);
+}
+/**
+ *
+ * @param myCommand
+ * @return
+ */
+char **getExecParam(command myCommand){
+    char *newDirectory = getPath(myCommand);
+    char **parameterList = calloc(myCommand.argc+1,sizeof(char *));
+    parameterList[0]=newDirectory;
+
+    for (int i = 1; i < myCommand.argc; ++i) {
+        parameterList[i] = myCommand.argv[i];
+    }
+    parameterList[myCommand.argc] = 0;
+    return parameterList;
+}
+/**
+ * Name: getPath
+ * Description: Gets the path of the external program to be executed
+ * @param myCommand
+ * @return (pointer to path)
+ */
+char *getPath(command myCommand){
+    size_t sizeOfProgram = strlen(myCommand.argv[0]);
+    char *tmpString = "/bin/";
+    char *newDirectory = calloc((sizeOfProgram+5) ,sizeof(char*));
+    newDirectory[0] = '\0';
+    strcat(newDirectory,tmpString);
+    strcat(newDirectory,myCommand.argv[0]);
+    fprintf(stderr,"%s\n",newDirectory);
+    return newDirectory;
+}
+/**
+ * Name createChildWrite
+ * @param fd
+ * @param parameterList
+ */
+void createChildWrite(int fd[], char **parameterList){
+    pid_t pid = fork();
+    if(pid < 0){
+        perror("Problem with fork");
+        exit(1);
+    }
+    else if(pid == 0){
+        dup2(fd[WRITE_END], STDOUT_FILENO);
+        close(fd[READ_END]);
+        close(fd[WRITE_END]);
+        if(execvp(parameterList[0],parameterList)<0){
+            perror("Exec:");
+            exit(1);
+        }
+    }
+}
+/**
+ * Name createChildRead
+ * @param fd
+ * @param parameterList
+ */
+void createChildRead(int fd[], char **parameterList){
+    pid_t pid = fork();
+    if(pid < 0){
+        perror("Problem with fork");
+        exit(1);
+    }
+    else if(pid == 0){
+        dup2(fd[READ_END], STDIN_FILENO);
+        close(fd[WRITE_END]);
+        close(fd[READ_END]);
+        if(execvp(parameterList[0],parameterList)<0){
+            perror("Exec:");
+            exit(1);
+        }
+    }
+}
+
+void createReadAndWriteChild(int fd[], char **parameterList){
+    pid_t pid = fork();
+    if(pid < 0){
+        perror("Problem with fork");
+        exit(1);
+    }
+    else if(pid == 0){
+        dup2(fd[READ_END], STDIN_FILENO);
+        dup2(fd[WRITE_END],STDOUT_FILENO);
+        close(fd[WRITE_END]);
+        close(fd[READ_END]);
+        if(execvp(parameterList[0],parameterList)<0){
+            perror("Exec:");
+            exit(1);
+        }
+    }
+}
+
+void createChildWithoutPipe( char **parameterList){
+    pid_t pid= fork();
+    if(pid < 0){
+        perror("Problem with fork");
+        exit(1);
+    }
+    else if(pid == 0){
+        if(execvp(parameterList[0],parameterList)<0){
+            perror("Exec:");
+            exit(1);
+        }
+    }
+}
+
+
+void waitForChild(){
+    int pid;
+    int status;
+    while((pid = wait(&status)) != -1){
+        printf("Process %d \n",pid);
+        printf("WEXITSTATUS: %d\n", WEXITSTATUS(status));
+        printf("WIFEXITED: %d\n", WIFEXITED(status));
+        printf("WIFSIGNALED: %d\n", WIFSIGNALED(status));
+        printf("WIFSTOPPED: %d\n", WIFSTOPPED(status));
+    }
 }
 /**
  * Name: Join
