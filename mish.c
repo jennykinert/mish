@@ -1,17 +1,15 @@
 #include "mish.h"
-
+pid_t childID[100];
 static void fail(char* str);
-char **splitString(char *s, char separator);
-int mish();
+//int mish();
 
-int main(int argc, char **argv){
+/**int main(int argc, char **argv){
     if(strcmp(argv[argc-1],"test")==0){
         return test();
     }
     return mish();
-}
-int mish(){
-
+}*/
+int main(){
     setUpSignalHandeling();
     FILE *fp; 
     fp=stdin; 
@@ -41,18 +39,18 @@ int mish(){
             else{
                 char **parameterList = getExecParam(myCommands);
                 if(numberOfCommands == 1){
-                    createChildWithoutPipe(fd,parameterList,myCommands);
+                    childID[i]=createChildWithoutPipe(fd,parameterList,myCommands);
                     waitForChild();
                 }
                 else {
                     if(i == 0){
-                        createChildWrite(fd, parameterList,myCommands);
+                        childID[i]=createChildWrite(fd, parameterList,myCommands);
                     }
                     else if(i == numberOfCommands-1){
-                        createChildRead(fd,parameterList,myCommands);
+                        childID[i]=createChildRead(fd,parameterList,myCommands);
                     }
                     else{
-                        createReadAndWriteChild(fd, parameterList);
+                        childID[i]=createReadAndWriteChild(fd, parameterList);
                     }
                 }
                 char *temp = parameterList[0];
@@ -137,7 +135,7 @@ char *getPath(command myCommand){
  * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildWrite(int fd[], char **parameterList, command myCommand){
+pid_t createChildWrite(int fd[], char **parameterList, command myCommand){
     pid_t pid = fork();
     checkFork(pid);
     if(pid == 0){
@@ -153,6 +151,7 @@ void createChildWrite(int fd[], char **parameterList, command myCommand){
             exit(1);
         }
     }
+    return pid;
 }
 /**
  * Name createChildRead
@@ -160,7 +159,7 @@ void createChildWrite(int fd[], char **parameterList, command myCommand){
  * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildRead(int fd[], char **parameterList, command myCommand){
+pid_t createChildRead(int fd[], char **parameterList, command myCommand){
     pid_t pid = fork();
     checkFork(pid);
     if(pid == 0){
@@ -175,6 +174,7 @@ void createChildRead(int fd[], char **parameterList, command myCommand){
             exit(1);
         }
     }
+    return pid;
 }
 
 /**
@@ -184,7 +184,7 @@ void createChildRead(int fd[], char **parameterList, command myCommand){
  * @param fd
  * @param parameterList
  */
-void createReadAndWriteChild(int fd[], char **parameterList){
+pid_t createReadAndWriteChild(int fd[], char **parameterList){
     pid_t pid = fork();
     checkFork(pid);
     if(pid == 0){
@@ -197,6 +197,7 @@ void createReadAndWriteChild(int fd[], char **parameterList){
             exit(1);
         }
     }
+    return pid;
 }
 
 /**
@@ -205,7 +206,7 @@ void createReadAndWriteChild(int fd[], char **parameterList){
  * here no pipes are created.
  * @param parameterList
  */
-void createChildWithoutPipe( int fd[2], char **parameterList, command myCommand){
+pid_t createChildWithoutPipe( int fd[2], char **parameterList, command myCommand){
     pid_t pid= fork();
     checkFork(pid);
     if(pid == 0){
@@ -220,6 +221,7 @@ void createChildWithoutPipe( int fd[2], char **parameterList, command myCommand)
             exit(1);
         }
     }
+    return pid;
 }
 
 /**

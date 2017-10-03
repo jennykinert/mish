@@ -7,11 +7,12 @@
 #include <sys/fcntl.h>
 #include "sighant.h"
 #include "parser.h"
-#include "testProgram.h"
+//#include "testProgram.h"
 
 #define WRITE_END  1
 #define READ_END 0
 #define MAX_COMMAND 5
+extern pid_t childID[100];
 
 void setUpSignalHandeling();
 
@@ -69,14 +70,14 @@ void redirectOutFile(int fd[], char *outfile);
  * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildWrite( int fd[], char **parameterList, command myCommand);
+pid_t createChildWrite( int fd[], char **parameterList, command myCommand);
 /**
  * Name createChildRead
  * Description Creates a child that can only read from the filedescriptor
  * @param fd (file descriptor)
  * @param parameterList
  */
-void createChildRead(int fd[], char **parameterList, command myCommand);
+pid_t createChildRead(int fd[], char **parameterList, command myCommand);
 
 /**
  * Name createChildWithoutPipe
@@ -84,7 +85,7 @@ void createChildRead(int fd[], char **parameterList, command myCommand);
  * here no pipes are created.
  * @param parameterList
  */
-void createChildWithoutPipe(int fd[2], char **parameterList, command myCommand);
+pid_t createChildWithoutPipe(int fd[2], char **parameterList, command myCommand);
 /**
  * Name createReadAndWriteChild
  * Description creates a child that can pipe to both read and write of the
@@ -92,7 +93,7 @@ void createChildWithoutPipe(int fd[2], char **parameterList, command myCommand);
  * @param fd
  * @param parameterList
  */
-void createReadAndWriteChild(int fd[], char **parameterList);
+pid_t createReadAndWriteChild(int fd[], char **parameterList);
 
 /**
  * Name waitForChild

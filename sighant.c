@@ -1,5 +1,4 @@
 #include <signal.h>
-#include <unistd.h>
 #include <stdio.h>
 #include "mish.h"
 
@@ -11,8 +10,11 @@
 void signalCommand(int signalCommand) {
 	if (signalCommand == SIGINT) {
 		printf("recieved SIGINT\n");
-		pid_t pid = getpid();
-		kill(pid, SIGKILL);
+        int i =0;
+        while(childID[i] != 0) {
+            kill(childID[i],SIGKILL);
+            i++;
+        }
 	}
 }
 
