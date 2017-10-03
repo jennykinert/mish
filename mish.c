@@ -11,9 +11,8 @@ int main(int argc, char **argv){
     return mish();
 }
 int mish(){
-    if(signal(SIGINT,signalCommand) == SIG_ERR)
-      printf("\nCan't cath SIGINT\n");
 
+    setUpSignalHandeling();
     FILE *fp; 
     fp=stdin; 
     char *commandString = malloc(1024);
@@ -42,7 +41,7 @@ int mish(){
             else{
                 char **parameterList = getExecParam(myCommands);
                 if(numberOfCommands == 1){
-                    createChildWithoutPipe(parameterList);
+                    createChildWithoutPipe(fd,parameterList,myCommands);
                     waitForChild();
                 }
                 else {
@@ -56,12 +55,16 @@ int mish(){
                         createReadAndWriteChild(fd, parameterList);
                     }
                 }
+                char *temp = parameterList[0];
+                free(temp);
+                free(parameterList);
             }
         }
         close(fd[READ_END]);
         close(fd[WRITE_END]);
         waitForChild();
     }
+    fclose(fp);
     free(commandString);
     return 0; 
 }
@@ -84,13 +87,11 @@ void changecwd(char *argv){
         fprintf(stderr, "malloc failed");
         exit(1);
     }
-
     strcat(currentDirectory,separator2);
     strcat(currentDirectory,argv);
     if(chdir(currentDirectory)==-1){
         perror("chdir() failed \n");
     }
-
     currentDirectory=getcwd(buff,1024);
     printf("Print Current directory %s\n", currentDirectory);
     free(buff);
@@ -204,10 +205,16 @@ void createReadAndWriteChild(int fd[], char **parameterList){
  * here no pipes are created.
  * @param parameterList
  */
-void createChildWithoutPipe( char **parameterList){
+void createChildWithoutPipe( int fd[2], char **parameterList, command myCommand){
     pid_t pid= fork();
     checkFork(pid);
     if(pid == 0){
+        if(myCommand.outfile != NULL){
+            redirectOutFile(fd, myCommand.outfile);
+        }
+        if(myCommand.infile != NULL){
+            redirectInFile(fd,myCommand.infile);
+        }
         if(execvp(parameterList[0],parameterList)<0){
             perror("Exec:");
             exit(1);
@@ -280,5 +287,16 @@ void checkFork(int fork){
         perror("Problem with fork");
         exit(1);
     }
+}
+
+
+void setUpSignalHandeling(){
+    struct sigaction act;
+    act.sa_handler = &signalCommand;
+    if (sigaction(SIGINT, &act, NULL) < 0) {
+        perror ("sigaction");
+        exit(1);
+    }
+
 }
     

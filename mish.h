@@ -13,6 +13,8 @@
 #define READ_END 0
 #define MAX_COMMAND 5
 
+void setUpSignalHandeling();
+
 /**
  * Name: change cwd
  * Description: Changing the working directory. If the user write .. the
@@ -82,7 +84,7 @@ void createChildRead(int fd[], char **parameterList, command myCommand);
  * here no pipes are created.
  * @param parameterList
  */
-void createChildWithoutPipe(char **parameterList);
+void createChildWithoutPipe(int fd[2], char **parameterList, command myCommand);
 /**
  * Name createReadAndWriteChild
  * Description creates a child that can pipe to both read and write of the

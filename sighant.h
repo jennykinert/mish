@@ -1,1 +1,2 @@
-void signalCommand(int signalCommand); 
+void signalCommand(int signalCommand);
+
