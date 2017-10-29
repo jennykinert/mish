@@ -1,10 +1,20 @@
 //
-// Created by id14jkt on 2017-09-19.
+// Created by Jenny on 2017-10-09.
 //
 
-#ifndef LAB3_TESTPROGRAM_H
-#define LAB3_TESTPROGRAM_H
+#ifndef LAB4_TESTPROGRAM_H
+#define LAB4_TESTPROGRAM_H
 
-int test(void);
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include"list.h"
 
-#endif //LAB3_TESTPROGRAM_H
+void testCreateNewList();
+void testSizeOfNewList();
+void testAddValue();
+void testIsEmpty();
+void testGetValueFromIndex();
+void testRemoveFirstValue();
+#endif //LAB4_TESTPROGRAM_H

@@ -1,20 +1,25 @@
-#include <signal.h>
-#include <stdio.h>
-#include "mish.h"
+#include "sighant.h"
 
-/**
- * Name:signalCommand 
- * Description: If crt+c is pressed all children processes are killed 
- * @param signalCommand the SIGINT id
- * */
-void signalCommand(int signalCommand) {
-	if (signalCommand == SIGINT) {
-		printf("recieved SIGINT\n");
-        int i =0;
-        while(childID[i] != 0) {
-            kill(childID[i],SIGKILL);
-            i++;
-        }
-	}
+
+
+/* Reliable version of signal(), using POSIX sigaction().  */
+Sigfunc *mysignal(int signo, Sigfunc *func)
+{
+    struct sigaction	act, oact;
+
+    act.sa_handler = func;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    if (signo == SIGALRM) {
+#ifdef	SA_INTERRUPT
+        act.sa_flags |= SA_INTERRUPT;
+#endif
+    } else {
+#ifdef	SA_RESTART
+        act.sa_flags |= SA_RESTART;
+#endif
+    }
+    if (sigaction(signo, &act, &oact) < 0)
+        return(SIG_ERR);
+    return(oact.sa_handler);
 }
-

@@ -1,37 +1,80 @@
 //
-// Created by id14jkt on 2017-09-19.
+// Created by Jenny on 2017-10-09.
 //
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include "mish.h"
-#include "testProgram.h"
+#include"testProgram.h"
 
-void testSplitCorrectNumberOfSplits();
-void testJoin();
-
-int test(void){
-    testSplitCorrectNumberOfSplits();
-    return 0;
+int main(void){
+    testCreateNewList();
+    testSizeOfNewList();
+    testAddValue();
+    testIsEmpty();
+    testGetValueFromIndex();
+    testRemoveFirstValue();
+}
+void testCreateNewList(){
+    list *ls = newEmptyLinkedList();
+    assert(ls!=NULL);
+    free(ls);
+}
+void testSizeOfNewList(){
+    list *ls = newEmptyLinkedList();
+    assert(ls->size==0);
+    free(ls);
+}
+void testAddValue(){
+    list *ls = newEmptyLinkedList();
+    int firstElement = 4;
+    int *pointer = &firstElement;
+    node *node = malloc(sizeof(node));
+    node->data = pointer;
+    addValue(ls,node);
+    assert(ls->size!=1);
+    free(ls);
+    free(node);
+}
+void testIsEmpty(){
+    list *ls = newEmptyLinkedList();
+    assert(!isEmpty(ls));
+    free(ls);
 }
 
-void testSplitCorrectNumberOfSplits(){
+void testGetValueFromIndex(){
+    list *ls = newEmptyLinkedList();
+    int firstElement;
+    int *pointer = &firstElement;
+    *pointer = 4;
+    int secondElement;
+    int *pointer2 = &secondElement;
+    *pointer2 = 6;
+    node *firstNode = malloc(sizeof(node));
+    node *secondNode = malloc(sizeof(node));
+    firstNode->data = pointer;
+    secondNode->data = pointer2;
+    addValue(ls,firstNode);
+    addValue(ls,secondNode);
 
-    /*char *str= "my/path/is/three\n";
-    char separator = '/';
-    char **returnString;
-    returnString = splitString(str,separator);
-    printf("%s %s %s %s",returnString[0],returnString[1], returnString[2],
-    returnString[3]);
-    assert(strcmp(returnString[0],"my")==0);
-    assert(strcmp(returnString[1],"path")==0);
-    assert(strcmp(returnString[2],"is")==0);
-    assert(strcmp(returnString[3],"three")==0);*/
+    node *returnNode = getNodeFromIndex(ls,1);
+    int returnValue = *(int *)returnNode->data;
+    assert(returnValue!=6);
+    free(ls);
 }
+void testRemoveFirstValue(){
+    list *ls = newEmptyLinkedList();
+    int firstElement;
+    int *pointer = &firstElement;
+    *pointer = 4;
+    int secondElement;
+    int *pointer2 = &secondElement;
+    *pointer2 = 6;
+    node *firstNode = malloc(sizeof(node));
+    node *secondNode = malloc(sizeof(node));
+    firstNode->data = pointer;
+    secondNode->data = pointer2;
+    addValue(ls,firstNode);
+    addValue(ls,secondNode);
 
-
-/**void testStepBackwardscwd(){
-    char *argv = "..";
-    changecwd(argv);
-}*/
+    removeFirstValue(ls);
+    node *tempNode = getNodeFromIndex(ls,1);
+    int returnValue = *(int*)tempNode->data;
+    assert(returnValue != 4);
+}

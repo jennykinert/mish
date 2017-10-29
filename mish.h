@@ -7,13 +7,15 @@
 #include <sys/fcntl.h>
 #include "sighant.h"
 #include "parser.h"
-//#include "testProgram.h"
 
 #define WRITE_END  1
 #define READ_END 0
-#define MAX_COMMAND 5
-extern pid_t childID[100];
+extern pid_t childID[MAXCOMMANDS];
 
+/**
+ * Name setUpSignalHandeling
+ * Descriprion A signalhandeler if SIGINT is send to the program
+ */
 void setUpSignalHandeling();
 
 /**
@@ -25,13 +27,6 @@ void setUpSignalHandeling();
  */
 void changecwd(char *argv);
 
-/**
- * Name: getPath
- * Description: Gets the path of the external program to be executed
- * @param myCommand
- * @return (pointer to path)
- */
-char *getPath(command myCommand);
 
 /**
  * Name getExecParam
@@ -47,7 +42,7 @@ char **getExecParam(command myCommand);
  * Description controls if a fork command is executed correct.
  * @param fork
  */
-void checkFork(int fork);
+void checkSystemCalls(int fork, char *systemcall);
 
 /**
  * Name redirectInFile
@@ -56,9 +51,11 @@ void checkFork(int fork);
  * @param outfile (name of file to redirect to)
  */
 void redirectInFile(int fd[], char *infile);
+
 /**
  * Name redirectOutFile
- * Description: Function to redirect stdin or out to a file
+ * Description: Function to redirect output to a file. If the outfile exists
+ * the redirect fails.
  * @param fd (filedescriptor)
  * @param outfile (name of file to redirect to)
  */
@@ -67,33 +64,44 @@ void redirectOutFile(int fd[], char *outfile);
 /**
  * Name createChildWrite
  * Description creates a child that can only write to the file descriptor
- * @param fd (file descriptor)
+ * @param fd
  * @param parameterList
+ * @param myCommand
+ * @return
  */
 pid_t createChildWrite( int fd[], char **parameterList, command myCommand);
+
 /**
  * Name createChildRead
  * Description Creates a child that can only read from the filedescriptor
- * @param fd (file descriptor)
+ * @param fd
  * @param parameterList
+ * @param myCommand
+ * @return
  */
-pid_t createChildRead(int fd[], char **parameterList, command myCommand);
+pid_t createChildRead(int tempfd[], int fd[], char **parameterList, command myCommand);
 
 /**
  * Name createChildWithoutPipe
  * Description used when only one external command is supposed to be executed
  * here no pipes are created.
+ * @param fd
  * @param parameterList
+ * @param myCommand
+ * @return
  */
-pid_t createChildWithoutPipe(int fd[2], char **parameterList, command myCommand);
+pid_t createChildWithoutPipe(int fd[2],char **parameterList, command myCommand);
+
 /**
  * Name createReadAndWriteChild
  * Description creates a child that can pipe to both read and write of the
- * filedescriptor
+ * filedescriptor.
  * @param fd
  * @param parameterList
+ * @param myCommand
+ * @return
  */
-pid_t createReadAndWriteChild(int fd[], char **parameterList);
+pid_t createReadAndWriteChild(int tempfd[],int fd[],char **parameterList, command myCommand);
 
 /**
  * Name waitForChild
